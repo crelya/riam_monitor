@@ -1,0 +1,3 @@
+rootProject.name = 'riam_monitor'
+
+include ':app'
