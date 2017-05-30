@@ -127,7 +127,7 @@ class MazeContainer extends Component {
           unpairedDevices: [],
           connected: false,
           section: 0,
-          device: {id: "00:0A:3A:6F:45:91", name: "RIAM1"}
+          device: {id: "00:1A:7D:DA:71:14", name: "RIAM1"}
       }
   }
 
@@ -141,7 +141,7 @@ class MazeContainer extends Component {
                 this.setState({ isEnabled, devices })
             })
 
-        BluetoothSerial.on('data', (data) => { console.log(data); });
+        BluetoothSerial.readFromDevice().then((data) => {console.log(data)});
 
 
         BluetoothSerial.on('bluetoothEnabled', () => Toast.showShortBottom('Bluetooth enabled'))
@@ -174,7 +174,9 @@ class MazeContainer extends Component {
 
   }
 
-
+    read(){
+        BluetoothSerial.readFromDevice().then((data) => {console.log(data)});
+    }
 
     /**
      * [android]
@@ -395,6 +397,10 @@ class MazeContainer extends Component {
                                 <Button
                                     title='ACT'
                                     onPress={() => this.execute_command('ACT')} />
+
+                                <Button
+                                    title='READ'
+                                    onPress={() => this.read()} />
                             </View>
 
 
