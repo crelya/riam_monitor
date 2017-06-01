@@ -23,7 +23,9 @@ import Base64 from 'js-base64';
 
 
 import * as maze_actions from '../actions/maze_actions';
+import Maze from '../components/maze';
 import { connect } from 'react-redux';
+var maze = require('../assets//virtual_maze.json');
 
 const styles = StyleSheet.create({
     container: {
@@ -115,7 +117,8 @@ const Button = ({ title, onPress, style, textStyle }) =>
     </TouchableOpacity>
 
 
-
+const RIAM_1 = {id: "00:0A:3A:6F:45:91", name: "RIAM_1"}
+const RIAM_2 = {id: "00:1A:7D:DA:71:14", name: "RIAM_2"}
 class MazeContainer extends Component {
 
   constructor(props) {
@@ -127,10 +130,15 @@ class MazeContainer extends Component {
           unpairedDevices: [],
           connected: false,
           section: 0,
-          device: {id: "00:1A:7D:DA:71:14", name: "RIAM1"}
-      }
-  }
+          device: {},
+          maze: maze
 
+      }
+
+  }
+    componentDidMount(){
+
+    }
     componentWillMount () {
         Promise.all([
             BluetoothSerial.isEnabled(),
@@ -141,7 +149,16 @@ class MazeContainer extends Component {
                 this.setState({ isEnabled, devices })
             })
 
-        BluetoothSerial.readFromDevice().then((data) => {console.log(data)});
+
+        BluetoothSerial.withDelimiter('\n')
+            .then((res) => console.log("Delimitar"))
+
+
+        BluetoothSerial.on('read', (data) => {
+            
+
+            this.updateMaze(JSON.parse(data.data))
+        })
 
 
         BluetoothSerial.on('bluetoothEnabled', () => Toast.showShortBottom('Bluetooth enabled'))
@@ -276,7 +293,10 @@ class MazeContainer extends Component {
     }
 
     execute_command(tag){
-        this.write(JSON.stringify({tag: tag, value: 2}));
+        if(tag == "ACT"){
+            this.setState({section: 1})
+        }
+        this.write(JSON.stringify({tag: tag, value: 0.38}));
     }
 
     /**
@@ -375,49 +395,105 @@ class MazeContainer extends Component {
 
 
 
-              <View style={{ alignSelf: 'flex-end', flex: 1}}>
-                <ScrollView
-                    horizontal
-                    contentContainerStyle={styles.fixedFooter}>
-                    {Platform.OS === 'android' && this.state.section === 0
-                        ? (
-                            <View style={{flex: 1}}>
-                                <Button
-                                    title={this.state.discovering ? '... Connecting' : 'CONNECT'}
-                                    onPress={() => this.connect(this.state.device)} />
+              <View style={{ flex: 1}}>
+                  {Platform.OS === 'android' && this.state.section === 0
+                      ? (
+                          <View style={{flex: 1}}>
+                              <Button
+                                  title={this.state.discovering ? '... Connecting' : 'CONNECT TO RIAM_1'}
+                                  onPress={() => this.connect(RIAM_1)} />
+                              <Button
+                                  title={this.state.discovering ? '... Connecting' : 'CONNECT TO RIAM_2'}
+                                  onPress={() => this.connect(RIAM_2)} />
 
-                                <Button
-                                    title='MOVE FORWARD'
-                                    onPress={() => this.execute_command('MOVE_FORWARD')} />
+                              <Button
+                                  title='MOVE FORWARD'
+                                  onPress={() => this.execute_command('MOVE_FORWARD')} />
 
-                                <Button
-                                    title='MOVE BACKWARDS'
-                                    onPress={() => this.execute_command('MOVE_BACKWARDS')} />
+                              <Button
+                                  title='MOVE BACKWARDS'
+                                  onPress={() => this.execute_command('MOVE_BACKWARDS')} />
 
-                                <Button
-                                    title='ACT'
-                                    onPress={() => this.execute_command('ACT')} />
+                              <Button
+                                  title='ACT'
+                                  onPress={() => this.execute_command('ACT')} />
 
-                                <Button
-                                    title='READ'
-                                    onPress={() => this.read()} />
-                            </View>
+                              <Button
+                                  title='ROTATE 90'
+                                  onPress={() => this.execute_command('ROTATE_90')} />
+
+                              <Button
+                                  title='READ'
+                                  onPress={() => this.read()} />
+                          </View>
 
 
 
-                        ) : null}
-                    {Platform.OS === 'android' && !this.state.isEnabled
-                        ? (
-                            <Button
-                                title='Request enable'
-                                onPress={() => this.requestEnable()} />
-                        ) : null}
-                </ScrollView>
+                      ) : null}
+
+
+                  {Platform.OS === 'android' && !this.state.isEnabled && this.state.section === 0
+                      ? (
+                          <Button
+                              title='Request enable'
+                              onPress={() => this.requestEnable()} />
+                      ) : null}
+
+
+                  {Platform.OS === 'android' && this.state.section === 1
+                      ? (
+                          <View style={{flex: 1}}>
+                              <Maze
+                                maze={this.state.maze}
+                              />
+                          </View>
+
+
+
+                      ) : null}
+
               </View>
             </View>
         )
     }
+
+    updateMaze(data){
+        console.log("UPDATE MAZE")
+        console.log(data)
+        for(var i = 0; i < data.length; i++){
+            var modified_tile = data[i];
+            console.log(modified_tile)
+            var position = modified_tile.position;
+
+            var idx = this.get_tile(position).idx;
+            var new_map = this.state.maze;
+
+            new_map.tiles[idx].input_dir = modified_tile.input_dir;
+            new_map.tiles[idx].output_dirs = modified_tile.output_dirs;
+            new_map.tiles[idx].possible_dirs = modified_tile.possible_dirs;
+            new_map.tiles[idx].forbidden_dirs = modified_tile.forbidden_dirs;
+
+            this.setState({maze: new_map})
+        }
+    }
+
+    get_tile(position){
+        var tile = null;
+        for(var i = 0; i < this.state.maze.tiles.length; i++){
+            tile = this.state.maze.tiles[i]
+            // console.log(tile.position)
+            if(tile.position[0] == position[0] && tile.position[1] == position[1]){
+                // console.log("FOUND");
+                return {tile: tile, idx: i};
+            }
+        }
+        return {};
+    }
 }
+
+
+
+
 
 function mapStateToProps(state) {
   const {connected} = state.maze_reducer
