@@ -52,7 +52,7 @@ export default class Maze extends Component {
     get_style(tile){
         var style = {
 
-            backgroundColor: '#ddeedd',
+            backgroundColor: '#adf7d3',
             borderColor: 'black',
             borderWidth: 2,
             alignItems: 'center'
@@ -63,9 +63,9 @@ export default class Maze extends Component {
             style.borderWidth = 0
         }else{
             if(tile.begin == "true" || tile.end == "true"){
-                style.backgroundColor = "#aaaadd"
+                style.backgroundColor = "#9C5DC2"
             }else{
-                style.backgroundColor = "#ddeedd"
+                style.backgroundColor = "#adf7d3"
             }
 
 
@@ -90,7 +90,7 @@ export default class Maze extends Component {
 
 
             if(tile.input_dir && tile.input_dir.length > 0){
-                style.backgroundColor = "red"
+                style.backgroundColor = "#7C4AB5"
             }
         }
 

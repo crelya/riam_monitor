@@ -13,7 +13,8 @@ import {
     View,
     Modal,
     ActivityIndicator,
-    Image
+    Image,
+    TextInput
 } from 'react-native';
 import Toast from '@remobile/react-native-toast'
 import BluetoothSerial from 'react-native-bluetooth-serial'
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5FCFF'
     },
     topBar: {
-        height: 56,
+        flex: 0.1,
         paddingHorizontal: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -73,18 +74,7 @@ const styles = StyleSheet.create({
         marginVertical: 10,
         color: '#238923'
     },
-    listContainer: {
-        borderColor: '#ccc',
-        borderTopWidth: 0.5
-    },
-    listItem: {
-        flex: 1,
-        height: 48,
-        paddingHorizontal: 16,
-        borderColor: '#ccc',
-        borderBottomWidth: 0.5,
-        justifyContent: 'center'
-    },
+
     fixedFooter: {
         flexDirection: 'row',
         justifyContent: 'center',
@@ -131,7 +121,8 @@ class MazeContainer extends Component {
           connected: false,
           section: 0,
           device: {},
-          maze: maze
+          maze: maze,
+          value: 0.38
 
       }
 
@@ -155,7 +146,7 @@ class MazeContainer extends Component {
 
 
         BluetoothSerial.on('read', (data) => {
-            
+
 
             this.updateMaze(JSON.parse(data.data))
         })
@@ -228,56 +219,6 @@ class MazeContainer extends Component {
     }
 
     /**
-     * [android]
-     * Discover unpaired devices, works only in android
-     */
-    discoverUnpaired () {
-        if (this.state.discovering) {
-            return false
-        } else {
-            this.setState({ discovering: true })
-            BluetoothSerial.discoverUnpairedDevices()
-                .then((unpairedDevices) => {
-                    this.setState({ unpairedDevices, discovering: false })
-                })
-                .catch((err) => Toast.showShortBottom(err.message))
-        }
-    }
-
-    /**
-     * [android]
-     * Discover unpaired devices, works only in android
-     */
-    cancelDiscovery () {
-        if (this.state.discovering) {
-            BluetoothSerial.cancelDiscovery()
-                .then(() => {
-                    this.setState({ discovering: false })
-                })
-                .catch((err) => Toast.showShortBottom(err.message))
-        }
-    }
-
-    /**
-     * [android]
-     * Pair device
-     */
-    pairDevice (device) {
-        BluetoothSerial.pairDevice(device.id)
-            .then((paired) => {
-                if (paired) {
-                    Toast.showShortBottom(`Device ${device.name} paired successfully`)
-                    const devices = this.state.devices
-                    devices.push(device)
-                    this.setState({ devices, unpairedDevices: this.state.unpairedDevices.filter((d) => d.id !== device.id) })
-                } else {
-                    Toast.showShortBottom(`Device ${device.name} pairing failed`)
-                }
-            })
-            .catch((err) => Toast.showShortBottom(err.message))
-    }
-
-    /**
      * Connect to bluetooth device by id
      * @param  {Object} device
      */
@@ -296,7 +237,7 @@ class MazeContainer extends Component {
         if(tag == "ACT"){
             this.setState({section: 1})
         }
-        this.write(JSON.stringify({tag: tag, value: 0.38}));
+        this.write(JSON.stringify({tag: tag, value: this.state.value}));
     }
 
     /**
@@ -337,31 +278,6 @@ class MazeContainer extends Component {
             .catch((err) => Toast.showShortBottom(err.message))
     }
 
-    onDevicePress (device) {
-        if (this.state.section === 0) {
-            this.connect(device)
-        } else {
-            this.pairDevice(device)
-        }
-    }
-
-    writePackets (message, packetSize = 64) {
-        const toWrite = Base64.encode(message)
-        const writePromises = []
-        const packetCount = Math.ceil(toWrite.length / packetSize)
-
-        for (var i = 0; i < packetCount; i++) {
-            const packet = new Buffer(packetSize)
-            packet.fill(' ')
-            toWrite.copy(packet, 0, i * packetSize, (i + 1) * packetSize)
-            writePromises.push(BluetoothSerial.write(packet))
-        }
-
-        Promise.all(writePromises)
-            .then((result) => {
-            })
-    }
-
     render () {
         const activeTabStyle = { borderBottomWidth: 6, borderColor: '#009688' }
         return (
@@ -384,75 +300,106 @@ class MazeContainer extends Component {
                 {Platform.OS === 'android'
                     ? (
                         <View style={[styles.topBar, { justifyContent: 'center', paddingHorizontal: 0 }]}>
-                          <TouchableOpacity style={[styles.tab, this.state.section === 0 && activeTabStyle]} onPress={() => this.setState({ section: 0 })}>
-                            <Text style={{ fontSize: 14, color: '#FFFFFF' }}>SETTINGS</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={[styles.tab, this.state.section === 1 && activeTabStyle]} onPress={() => this.setState({ section: 1 })}>
-                            <Text style={{ fontSize: 14, color: '#FFFFFF' }}>MAZE</Text>
-                          </TouchableOpacity>
+                            <TouchableOpacity style={[styles.tab, this.state.section === 0 && activeTabStyle]} onPress={() => this.setState({ section: 0 })}>
+                                <Text style={{ fontSize: 14, color: '#FFFFFF' }}>SETTINGS</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.tab, this.state.section === 1 && activeTabStyle]} onPress={() => this.setState({ section: 1 })}>
+                                <Text style={{ fontSize: 14, color: '#FFFFFF' }}>MAZE</Text>
+                            </TouchableOpacity>
                         </View>
                     ) : null}
 
 
 
-              <View style={{ flex: 1}}>
-                  {Platform.OS === 'android' && this.state.section === 0
-                      ? (
-                          <View style={{flex: 1}}>
-                              <Button
-                                  title={this.state.discovering ? '... Connecting' : 'CONNECT TO RIAM_1'}
-                                  onPress={() => this.connect(RIAM_1)} />
-                              <Button
-                                  title={this.state.discovering ? '... Connecting' : 'CONNECT TO RIAM_2'}
-                                  onPress={() => this.connect(RIAM_2)} />
+                <View style={{ flex: 0.8}}>
+                    {Platform.OS === 'android' && this.state.section === 0
+                        ? (
+                            <View style={{flex: 1}}>
+                                <View style={{flex: 0.4}}>
+                                    <View style={{flex: 1, flexDirection: 'row', marginTop: 5}}>
+                                        <Button
+                                            title={this.state.discovering ? '... Connecting' : 'CONNECT TO RIAM_1'}
+                                            onPress={() => this.connect(RIAM_1)} />
+                                        <Button
+                                            title={this.state.discovering ? '... Connecting' : 'CONNECT TO RIAM_2'}
+                                            onPress={() => this.connect(RIAM_2)} />
+                                    </View>
+                                    
+                                    <Button
+                                        title='START'
+                                        style={{backgroundColor: '#7B1FA2', paddingVertical: 10}}
+                                        textStyle={{color: 'white'}}
+                                        onPress={() => this.execute_command('ACT')} />
+                                </View>
 
-                              <Button
-                                  title='MOVE FORWARD'
-                                  onPress={() => this.execute_command('MOVE_FORWARD')} />
+                                <View style={{flex: 0.6, backgroundColor: '#adf7d3'}}>
 
-                              <Button
-                                  title='MOVE BACKWARDS'
-                                  onPress={() => this.execute_command('MOVE_BACKWARDS')} />
+                                    <View style={{flexDirection: 'row'}}>
+                                        <Text style={[{flex: 1, fontSize: 16, textAlign: 'center', color: 'black', padding: 5}]}>LIVE MODE</Text>
+                                    </View>
 
-                              <Button
-                                  title='ACT'
-                                  onPress={() => this.execute_command('ACT')} />
+                                    <View style={{paddingHorizontal: 10}}>
+                                        <Text>Value</Text>
+                                        <TextInput
+                                            style={{height: 50}}
+                                            onChangeText={(value) => this.setState({value: parseFloat(value)})}
+                                            value={this.state.value.toString()}
+                                        />
+                                    </View>
 
-                              <Button
-                                  title='ROTATE 90'
-                                  onPress={() => this.execute_command('ROTATE_90')} />
+                                    <View style={{flexDirection: 'row', marginTop: 5, alignItems: 'center'}}>
+                                        <Button
+                                            title='FORWARD'
+                                            onPress={() => this.execute_command('MOVE_FORWARD')} />
 
-                              <Button
-                                  title='READ'
-                                  onPress={() => this.read()} />
-                          </View>
+                                        <Button
+                                            title='BACKWARDS'
+                                            onPress={() => this.execute_command('MOVE_BACKWARDS')} />
 
-
-
-                      ) : null}
-
-
-                  {Platform.OS === 'android' && !this.state.isEnabled && this.state.section === 0
-                      ? (
-                          <Button
-                              title='Request enable'
-                              onPress={() => this.requestEnable()} />
-                      ) : null}
-
-
-                  {Platform.OS === 'android' && this.state.section === 1
-                      ? (
-                          <View style={{flex: 1}}>
-                              <Maze
-                                maze={this.state.maze}
-                              />
-                          </View>
+                                        <Button
+                                            title='ROTATE'
+                                            onPress={() => this.execute_command('ROTATE')} />
+                                    </View>
 
 
 
-                      ) : null}
 
-              </View>
+                                    <Button
+                                        title='READ'
+                                        onPress={() => this.read()} />
+                                </View>
+                            </View>
+
+
+
+
+
+                        ) : null}
+
+
+                    {Platform.OS === 'android' && !this.state.isEnabled && this.state.section === 0
+                        ? (
+                            <Button
+                                title='Request enable'
+                                onPress={() => this.requestEnable()} />
+                        ) : null}
+
+
+                    {Platform.OS === 'android' && this.state.section === 1
+                        ? (
+                            <View style={{flex: 1}}>
+                                <Maze
+                                    maze={this.state.maze}
+                                />
+                            </View>
+
+
+
+                        ) : null}
+
+                </View>
+
+
             </View>
         )
     }
