@@ -343,7 +343,7 @@ class MazeContainer extends Component {
                                         <TextInput
                                             style={{height: 50}}
                                             onChangeText={(value) => this.setState({value: parseFloat(value)})}
-                                            value={this.state.value.toString()}
+
                                         />
                                     </View>
 
@@ -361,12 +361,20 @@ class MazeContainer extends Component {
                                             onPress={() => this.execute_command('ROTATE')} />
                                     </View>
 
+                                    <View style={{flexDirection: 'row', marginTop: 5, alignItems: 'center'}}>
+                                        <Button
+                                            title='STOP'
+                                            onPress={() => this.execute_command('STOP')} />
 
+                                        <Button
+                                            title='FREE MODE'
+                                            onPress={() => this.execute_command('FREE_MODE')} />
 
+                                        <Button
+                                            title='CHECK OBSTACLE'
+                                            onPress={() => this.execute_command('CHECK_OBSTACLE')} />
+                                    </View>
 
-                                    <Button
-                                        title='READ'
-                                        onPress={() => this.read()} />
                                 </View>
                             </View>
 
@@ -407,21 +415,28 @@ class MazeContainer extends Component {
     updateMaze(data){
         console.log("UPDATE MAZE")
         console.log(data)
-        for(var i = 0; i < data.length; i++){
-            var modified_tile = data[i];
-            console.log(modified_tile)
-            var position = modified_tile.position;
 
-            var idx = this.get_tile(position).idx;
-            var new_map = this.state.maze;
+        if (!Array.isArray(data) && 'distance' in data){
+            Toast.showShortBottom(`Distance: ${data.distance.toFixed(2)} cm`)
+        }else{
+            for(var i = 0; i < data.length; i++){
+                var modified_tile = data[i];
+                console.log(modified_tile)
+                var position = modified_tile.position;
 
-            new_map.tiles[idx].input_dir = modified_tile.input_dir;
-            new_map.tiles[idx].output_dirs = modified_tile.output_dirs;
-            new_map.tiles[idx].possible_dirs = modified_tile.possible_dirs;
-            new_map.tiles[idx].forbidden_dirs = modified_tile.forbidden_dirs;
+                var idx = this.get_tile(position).idx;
+                var new_map = this.state.maze;
 
-            this.setState({maze: new_map})
+                new_map.tiles[idx].input_dir = modified_tile.input_dir;
+                new_map.tiles[idx].output_dirs = modified_tile.output_dirs;
+                new_map.tiles[idx].possible_dirs = modified_tile.possible_dirs;
+                new_map.tiles[idx].forbidden_dirs = modified_tile.forbidden_dirs;
+
+                this.setState({maze: new_map})
+            }
         }
+
+
     }
 
     get_tile(position){
