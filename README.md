@@ -10,13 +10,13 @@ https://github.com/crelya/riam
 
 You need also to have [React Native](https://facebook.github.io/react-native/) installed in your system, so you can launch the APP.
 
-##Install Requirements
+## Install Requirements
 
 ````
 npm install
 ````
 
-##Run
+## Run
 
 ````
 npm start
